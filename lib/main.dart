@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
-
-import 'providers/medicine_provider.dart';
-import 'screens/add_medicine_screen.dart';
+import './providers/medicine_provider.dart';
+import './screens/add_medicine_screen.dart';
+import './screens/edit_medicine_screen.dart';
 
 void main() {
   tz.initializeTimeZones();
@@ -35,7 +35,6 @@ class MedicineListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final medicineProvider = Provider.of<MedicineProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Alarm Obat'),
@@ -60,6 +59,13 @@ class MedicineListScreen extends StatelessWidget {
             title: Text(medicine.name),
             subtitle: Text('Mulai: ${medicine.startDate.toLocal()}'),
             trailing: Text(medicine.timesPerDay.map((time) => time.format(context)).join(', ')),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => EditMedicineScreen(medicine),
+                ),
+              );
+            },
           );
         },
       ),

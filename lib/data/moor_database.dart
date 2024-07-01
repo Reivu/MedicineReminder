@@ -31,6 +31,9 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Medicine>> getAllMedicines() => select(medicines).get();
   Future<int> insertMedicine(MedicinesCompanion medicine) => into(medicines).insert(medicine);
+  Future<bool> updateMedicine(MedicinesCompanion medicine) => update(medicines).replace(medicine);
+  Future<int> deleteMedicineTimes(int medicineId) =>
+      (delete(medicineTimes)..where((tbl) => tbl.medicineId.equals(medicineId))).go();
   Future<List<MedicineTime>> getMedicineTimes(int medicineId) {
     return (select(medicineTimes)..where((tbl) => tbl.medicineId.equals(medicineId))).get();
   }

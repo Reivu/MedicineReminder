@@ -9,13 +9,11 @@ import '../data/moor_database.dart';
 import '../models/medicine.dart' as med;
 
 class MedicineProvider with ChangeNotifier {
-  final List<med.Medicine> _medicines = [];
-  List<med.Medicine> get medicines => _medicines;
-
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
   final database = AppDatabase();
+  final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+  List<med.Medicine> _medicines = [];
+  List<med.Medicine> get medicines => _medicines;
 
   MedicineProvider() {
     _loadMedicines();
@@ -27,11 +25,13 @@ class MedicineProvider with ChangeNotifier {
 
   Future<void> _loadMedicines() async {
     final dbMedicines = await database.getAllMedicines();
+    _medicines = [];
 
     for (var dbMedicine in dbMedicines) {
       final times = await database.getMedicineTimes(dbMedicine.id);
 
       _medicines.add(med.Medicine(
+        id: dbMedicine.id,
         name: dbMedicine.name,
         startDate: dbMedicine.startDate,
         timesPerDay: times.map((t) => TimeOfDay(hour: t.hour, minute: t.minute)).toList(),
@@ -55,12 +55,48 @@ class MedicineProvider with ChangeNotifier {
       ));
     }
 
-    _medicines.add(medicine);
-    scheduleMedicineNotifications(medicine);
+    _medicines.add(med.Medicine(
+      id: medicineId,
+      name: medicine.name,
+      startDate: medicine.startDate,
+      timesPerDay: medicine.timesPerDay,
+    ));
+    scheduleMedicineNotifications(medicineId, medicine);
     notifyListeners();
   }
 
-  void scheduleMedicineNotifications(med.Medicine medicine) {
+  Future<void> updateMedicine(med.Medicine medicine) async {
+    if (medicine.id == null) {
+      throw Exception("Medicine id is null");
+    }
+
+    await database.updateMedicine(MedicinesCompanion(
+      id: Value(medicine.id!),
+      name: Value(medicine.name),
+      startDate: Value(medicine.startDate),
+    ));
+
+    await database.deleteMedicineTimes(medicine.id!);
+
+    for (var time in medicine.timesPerDay) {
+      await database.insertMedicineTime(MedicineTimesCompanion(
+        medicineId: Value(medicine.id!),
+        hour: Value(time.hour),
+        minute: Value(time.minute),
+      ));
+    }
+
+    final index = _medicines.indexWhere((m) => m.id == medicine.id);
+    if (index != -1) {
+      _medicines[index] = medicine;
+    }
+
+    await cancelMedicineNotifications(medicine.id!);
+    scheduleMedicineNotifications(medicine.id!, medicine);
+    notifyListeners();
+  }
+
+  void scheduleMedicineNotifications(int medicineId, med.Medicine medicine) {
     flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
@@ -81,7 +117,7 @@ class MedicineProvider with ChangeNotifier {
 
       if (scheduledDate.isAfter(now)) {
         flutterLocalNotificationsPlugin.zonedSchedule(
-          medicine.hashCode + time.hashCode, // unique id
+          medicineId + time.hashCode, // unique id
           'Waktunya minum obat ${medicine.name}',
           'Saatnya minum obat',
           tz.TZDateTime.from(scheduledDate, tz.local),
@@ -103,6 +139,12 @@ class MedicineProvider with ChangeNotifier {
           matchDateTimeComponents: DateTimeComponents.time,
         );
       }
+    }
+  }
+
+  Future<void> cancelMedicineNotifications(int medicineId) async {
+    for (final time in _medicines.firstWhere((m) => m.id == medicineId).timesPerDay) {
+      await flutterLocalNotificationsPlugin.cancel(medicineId + time.hashCode);
     }
   }
 }
