@@ -58,14 +58,27 @@ class MedicineListScreen extends StatelessWidget {
           return ListTile(
             title: Text(medicine.name),
             subtitle: Text('Mulai: ${medicine.startDate.toLocal()}'),
-            trailing: Text(medicine.timesPerDay.map((time) => time.format(context)).join(', ')),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => EditMedicineScreen(medicine),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => EditMedicineScreen(medicine),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () async {
+                    await medicineProvider.deleteMedicine(medicine.id!);
+                  },
+                ),
+              ],
+            ),
           );
         },
       ),

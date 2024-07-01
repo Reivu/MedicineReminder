@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -61,6 +62,7 @@ class MedicineProvider with ChangeNotifier {
       startDate: medicine.startDate,
       timesPerDay: medicine.timesPerDay,
     ));
+
     scheduleMedicineNotifications(medicineId, medicine);
     notifyListeners();
   }
@@ -69,6 +71,8 @@ class MedicineProvider with ChangeNotifier {
     if (medicine.id == null) {
       throw Exception("Medicine id is null");
     }
+
+    await cancelMedicineNotifications(medicine.id!);
 
     await database.updateMedicine(MedicinesCompanion(
       id: Value(medicine.id!),
@@ -91,8 +95,14 @@ class MedicineProvider with ChangeNotifier {
       _medicines[index] = medicine;
     }
 
-    await cancelMedicineNotifications(medicine.id!);
     scheduleMedicineNotifications(medicine.id!, medicine);
+    notifyListeners();
+  }
+
+  Future<void> deleteMedicine(int medicineId) async {
+    await cancelMedicineNotifications(medicineId);
+    await database.deleteMedicine(medicineId);
+    _medicines.removeWhere((m) => m.id == medicineId);
     notifyListeners();
   }
 
@@ -143,8 +153,12 @@ class MedicineProvider with ChangeNotifier {
   }
 
   Future<void> cancelMedicineNotifications(int medicineId) async {
-    for (final time in _medicines.firstWhere((m) => m.id == medicineId).timesPerDay) {
-      await flutterLocalNotificationsPlugin.cancel(medicineId + time.hashCode);
+    final med.Medicine? medicine = _medicines.firstWhereOrNull((m) => m.id == medicineId);
+
+    if (medicine != null) {
+      for (final time in medicine.timesPerDay) {
+        await flutterLocalNotificationsPlugin.cancel(medicineId + time.hashCode);
+      }
     }
   }
 }

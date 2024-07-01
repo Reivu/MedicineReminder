@@ -34,6 +34,13 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateMedicine(MedicinesCompanion medicine) => update(medicines).replace(medicine);
   Future<int> deleteMedicineTimes(int medicineId) =>
       (delete(medicineTimes)..where((tbl) => tbl.medicineId.equals(medicineId))).go();
+  Future<int> deleteMedicine(int id) {
+    return transaction(() async {
+      await deleteMedicineTimes(id);
+      return (delete(medicines)..where((tbl) => tbl.id.equals(id))).go();
+    });
+  }
+
   Future<List<MedicineTime>> getMedicineTimes(int medicineId) {
     return (select(medicineTimes)..where((tbl) => tbl.medicineId.equals(medicineId))).get();
   }
