@@ -110,7 +110,7 @@ class MedicineProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void scheduleMedicineNotifications(int medicineId, med.Medicine medicine) {
+  Future<void> scheduleMedicineNotifications(int medicineId, med.Medicine medicine) async {
     flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
@@ -127,32 +127,50 @@ class MedicineProvider with ChangeNotifier {
 
     for (final time in medicine.timesPerDay) {
       final now = DateTime.now();
-      final scheduledDate = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+      var scheduledDate = DateTime(
+        medicine.startDate.year,
+        medicine.startDate.month,
+        medicine.startDate.day,
+        time.hour,
+        time.minute,
+      );
 
-      if (scheduledDate.isAfter(now)) {
-        flutterLocalNotificationsPlugin.zonedSchedule(
-          medicineId + time.hashCode, // unique id
-          'Waktunya minum obat ${medicine.name}',
-          'Saatnya minum obat',
-          tz.TZDateTime.from(scheduledDate, tz.local),
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              'your channel id',
-              'your channel name',
-              importance: Importance.max,
-              priority: Priority.high,
-              showWhen: false,
-              playSound: true,
-              sound: const RawResourceAndroidNotificationSound('alarm'),
-              additionalFlags: Int32List.fromList(<int>[insistentFlag]),
-              vibrationPattern: vibrationPattern,
-            ),
-          ),
-          androidScheduleMode: AndroidScheduleMode.alarmClock,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: medicine.repeatDaily ? DateTimeComponents.time : null,
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          time.hour,
+          time.minute,
         );
+
+        if (scheduledDate.isBefore(now)) {
+          scheduledDate = scheduledDate.add(const Duration(days: 1));
+        }
       }
+
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        medicineId + time.hashCode, // unique id
+        'Waktunya minum obat ${medicine.name}',
+        'Saatnya minum obat',
+        tz.TZDateTime.from(scheduledDate, tz.local),
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'your channel id',
+            'your channel name',
+            importance: Importance.max,
+            priority: Priority.high,
+            showWhen: false,
+            playSound: true,
+            sound: const RawResourceAndroidNotificationSound('alarm'),
+            additionalFlags: Int32List.fromList(<int>[insistentFlag]),
+            vibrationPattern: vibrationPattern,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: medicine.repeatDaily ? DateTimeComponents.time : null,
+      );
     }
   }
 
