@@ -36,6 +36,7 @@ class MedicineProvider with ChangeNotifier {
         name: dbMedicine.name,
         startDate: dbMedicine.startDate,
         timesPerDay: times.map((t) => TimeOfDay(hour: t.hour, minute: t.minute)).toList(),
+        repeatDaily: dbMedicine.repeatDaily,
       ));
     }
 
@@ -46,6 +47,7 @@ class MedicineProvider with ChangeNotifier {
     final medicineId = await database.insertMedicine(MedicinesCompanion(
       name: Value(medicine.name),
       startDate: Value(medicine.startDate),
+      repeatDaily: Value(medicine.repeatDaily),
     ));
 
     for (var time in medicine.timesPerDay) {
@@ -61,6 +63,7 @@ class MedicineProvider with ChangeNotifier {
       name: medicine.name,
       startDate: medicine.startDate,
       timesPerDay: medicine.timesPerDay,
+      repeatDaily: medicine.repeatDaily,
     ));
 
     scheduleMedicineNotifications(medicineId, medicine);
@@ -78,6 +81,7 @@ class MedicineProvider with ChangeNotifier {
       id: Value(medicine.id!),
       name: Value(medicine.name),
       startDate: Value(medicine.startDate),
+      repeatDaily: Value(medicine.repeatDaily),
     ));
 
     await database.deleteMedicineTimes(medicine.id!);
@@ -146,14 +150,14 @@ class MedicineProvider with ChangeNotifier {
           ),
           androidScheduleMode: AndroidScheduleMode.alarmClock,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: DateTimeComponents.time,
+          matchDateTimeComponents: medicine.repeatDaily ? DateTimeComponents.time : null,
         );
       }
     }
   }
 
   Future<void> cancelMedicineNotifications(int medicineId) async {
-    final med.Medicine? medicine = _medicines.firstWhereOrNull((m) => m.id == medicineId);
+    final medicine = _medicines.firstWhereOrNull((m) => m.id == medicineId);
 
     if (medicine != null) {
       for (final time in medicine.timesPerDay) {

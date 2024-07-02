@@ -29,8 +29,18 @@ class $MedicinesTable extends Medicines
   late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
       'start_date', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _repeatDailyMeta =
+      const VerificationMeta('repeatDaily');
   @override
-  List<GeneratedColumn> get $columns => [id, name, startDate];
+  late final GeneratedColumn<bool> repeatDaily = GeneratedColumn<bool>(
+      'repeat_daily', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("repeat_daily" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [id, name, startDate, repeatDaily];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -56,6 +66,12 @@ class $MedicinesTable extends Medicines
     } else if (isInserting) {
       context.missing(_startDateMeta);
     }
+    if (data.containsKey('repeat_daily')) {
+      context.handle(
+          _repeatDailyMeta,
+          repeatDaily.isAcceptableOrUnknown(
+              data['repeat_daily']!, _repeatDailyMeta));
+    }
     return context;
   }
 
@@ -71,6 +87,8 @@ class $MedicinesTable extends Medicines
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       startDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}start_date'])!,
+      repeatDaily: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}repeat_daily'])!,
     );
   }
 
@@ -84,14 +102,19 @@ class Medicine extends DataClass implements Insertable<Medicine> {
   final int id;
   final String name;
   final DateTime startDate;
+  final bool repeatDaily;
   const Medicine(
-      {required this.id, required this.name, required this.startDate});
+      {required this.id,
+      required this.name,
+      required this.startDate,
+      required this.repeatDaily});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['start_date'] = Variable<DateTime>(startDate);
+    map['repeat_daily'] = Variable<bool>(repeatDaily);
     return map;
   }
 
@@ -100,6 +123,7 @@ class Medicine extends DataClass implements Insertable<Medicine> {
       id: Value(id),
       name: Value(name),
       startDate: Value(startDate),
+      repeatDaily: Value(repeatDaily),
     );
   }
 
@@ -110,6 +134,7 @@ class Medicine extends DataClass implements Insertable<Medicine> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       startDate: serializer.fromJson<DateTime>(json['startDate']),
+      repeatDaily: serializer.fromJson<bool>(json['repeatDaily']),
     );
   }
   @override
@@ -119,68 +144,83 @@ class Medicine extends DataClass implements Insertable<Medicine> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'startDate': serializer.toJson<DateTime>(startDate),
+      'repeatDaily': serializer.toJson<bool>(repeatDaily),
     };
   }
 
-  Medicine copyWith({int? id, String? name, DateTime? startDate}) => Medicine(
+  Medicine copyWith(
+          {int? id, String? name, DateTime? startDate, bool? repeatDaily}) =>
+      Medicine(
         id: id ?? this.id,
         name: name ?? this.name,
         startDate: startDate ?? this.startDate,
+        repeatDaily: repeatDaily ?? this.repeatDaily,
       );
   @override
   String toString() {
     return (StringBuffer('Medicine(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('startDate: $startDate')
+          ..write('startDate: $startDate, ')
+          ..write('repeatDaily: $repeatDaily')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, startDate);
+  int get hashCode => Object.hash(id, name, startDate, repeatDaily);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Medicine &&
           other.id == this.id &&
           other.name == this.name &&
-          other.startDate == this.startDate);
+          other.startDate == this.startDate &&
+          other.repeatDaily == this.repeatDaily);
 }
 
 class MedicinesCompanion extends UpdateCompanion<Medicine> {
   final Value<int> id;
   final Value<String> name;
   final Value<DateTime> startDate;
+  final Value<bool> repeatDaily;
   const MedicinesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.startDate = const Value.absent(),
+    this.repeatDaily = const Value.absent(),
   });
   MedicinesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     required DateTime startDate,
+    this.repeatDaily = const Value.absent(),
   })  : name = Value(name),
         startDate = Value(startDate);
   static Insertable<Medicine> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<DateTime>? startDate,
+    Expression<bool>? repeatDaily,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (startDate != null) 'start_date': startDate,
+      if (repeatDaily != null) 'repeat_daily': repeatDaily,
     });
   }
 
   MedicinesCompanion copyWith(
-      {Value<int>? id, Value<String>? name, Value<DateTime>? startDate}) {
+      {Value<int>? id,
+      Value<String>? name,
+      Value<DateTime>? startDate,
+      Value<bool>? repeatDaily}) {
     return MedicinesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       startDate: startDate ?? this.startDate,
+      repeatDaily: repeatDaily ?? this.repeatDaily,
     );
   }
 
@@ -196,6 +236,9 @@ class MedicinesCompanion extends UpdateCompanion<Medicine> {
     if (startDate.present) {
       map['start_date'] = Variable<DateTime>(startDate.value);
     }
+    if (repeatDaily.present) {
+      map['repeat_daily'] = Variable<bool>(repeatDaily.value);
+    }
     return map;
   }
 
@@ -204,7 +247,8 @@ class MedicinesCompanion extends UpdateCompanion<Medicine> {
     return (StringBuffer('MedicinesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('startDate: $startDate')
+          ..write('startDate: $startDate, ')
+          ..write('repeatDaily: $repeatDaily')
           ..write(')'))
         .toString();
   }
@@ -478,11 +522,13 @@ typedef $$MedicinesTableInsertCompanionBuilder = MedicinesCompanion Function({
   Value<int> id,
   required String name,
   required DateTime startDate,
+  Value<bool> repeatDaily,
 });
 typedef $$MedicinesTableUpdateCompanionBuilder = MedicinesCompanion Function({
   Value<int> id,
   Value<String> name,
   Value<DateTime> startDate,
+  Value<bool> repeatDaily,
 });
 
 class $$MedicinesTableTableManager extends RootTableManager<
@@ -508,21 +554,25 @@ class $$MedicinesTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<DateTime> startDate = const Value.absent(),
+            Value<bool> repeatDaily = const Value.absent(),
           }) =>
               MedicinesCompanion(
             id: id,
             name: name,
             startDate: startDate,
+            repeatDaily: repeatDaily,
           ),
           getInsertCompanionBuilder: ({
             Value<int> id = const Value.absent(),
             required String name,
             required DateTime startDate,
+            Value<bool> repeatDaily = const Value.absent(),
           }) =>
               MedicinesCompanion.insert(
             id: id,
             name: name,
             startDate: startDate,
+            repeatDaily: repeatDaily,
           ),
         ));
 }
@@ -557,6 +607,11 @@ class $$MedicinesTableFilterComposer
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
+  ColumnFilters<bool> get repeatDaily => $state.composableBuilder(
+      column: $state.table.repeatDaily,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
   ComposableFilter medicineTimesRefs(
       ComposableFilter Function($$MedicineTimesTableFilterComposer f) f) {
     final $$MedicineTimesTableFilterComposer composer = $state.composerBuilder(
@@ -586,6 +641,11 @@ class $$MedicinesTableOrderingComposer
 
   ColumnOrderings<DateTime> get startDate => $state.composableBuilder(
       column: $state.table.startDate,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<bool> get repeatDaily => $state.composableBuilder(
+      column: $state.table.repeatDaily,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }

@@ -13,6 +13,7 @@ class Medicines extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   DateTimeColumn get startDate => dateTime()();
+  BoolColumn get repeatDaily => boolean().withDefault(const Constant(false))();
 }
 
 class MedicineTimes extends Table {

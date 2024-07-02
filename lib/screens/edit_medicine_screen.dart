@@ -16,6 +16,7 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
   final _nameController = TextEditingController();
   DateTime? _selectedDate;
   List<TimeOfDay> _selectedTimes = [];
+  bool _repeatDaily = false;
 
   @override
   void initState() {
@@ -23,6 +24,7 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
     _nameController.text = widget.medicine.name;
     _selectedDate = widget.medicine.startDate;
     _selectedTimes = List.from(widget.medicine.timesPerDay);
+    _repeatDaily = widget.medicine.repeatDaily;
   }
 
   void _presentDatePicker() {
@@ -70,6 +72,7 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
       name: _nameController.text,
       startDate: _selectedDate!,
       timesPerDay: _selectedTimes,
+      repeatDaily: _repeatDaily,
     );
 
     Provider.of<MedicineProvider>(context, listen: false).updateMedicine(updatedMedicine);
@@ -126,6 +129,19 @@ class _EditMedicineScreenState extends State<EditMedicineScreen> {
                 TextButton(
                   onPressed: _presentTimePicker,
                   child: const Text('Tambah Waktu'),
+                ),
+              ],
+            ),
+            Row(
+              children: <Widget>[
+                const Text('Ulangi Setiap Hari'),
+                Switch(
+                  value: _repeatDaily,
+                  onChanged: (value) {
+                    setState(() {
+                      _repeatDaily = value;
+                    });
+                  },
                 ),
               ],
             ),

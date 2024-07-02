@@ -14,6 +14,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   final _nameController = TextEditingController();
   DateTime? _selectedDate;
   final List<TimeOfDay> _selectedTimes = [];
+  bool _repeatDaily = false;
 
   void _presentDatePicker() {
     showDatePicker(
@@ -64,6 +65,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         name: enteredName,
         startDate: enteredDate,
         timesPerDay: enteredTimes,
+        repeatDaily: _repeatDaily,
       ),
     );
 
@@ -119,6 +121,19 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 TextButton(
                   onPressed: _presentTimePicker,
                   child: const Text('Tambah Waktu'),
+                ),
+              ],
+            ),
+            Row(
+              children: <Widget>[
+                const Text('Ulangi Setiap Hari'),
+                Switch(
+                  value: _repeatDaily,
+                  onChanged: (value) {
+                    setState(() {
+                      _repeatDaily = value;
+                    });
+                  },
                 ),
               ],
             ),
